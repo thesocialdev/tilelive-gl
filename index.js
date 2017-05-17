@@ -1,51 +1,58 @@
 var sm = new (require('sphericalmercator'))();
 var mbgl = require('mapbox-gl-native');
-var PNG = require('pngjs').PNG;
-var stream = require('stream');
-var concat = require('concat-stream');
+var sharp = require('sharp');
+var request = require('request');
 
-module.exports = function(fileSource) {
-    if (typeof fileSource.request !== 'function') throw new Error("fileSource must have a 'request' method");
-    if (typeof fileSource.cancel !== 'function') throw new Error("fileSource must have a 'cancel' method");
+module.exports = GL;
 
-    GL.prototype._fileSource = fileSource;
-
-    return GL;
-};
-
-module.exports.mbgl = mbgl;
-
-function GL(options, callback) {
-    if (!options || (typeof options !== 'object' && typeof options !== 'string')) return callback(new Error('options must be an object or a string'));
-    if (!options.style) return callback(new Error('Missing GL style JSON'));
-
-    this._scale = options.scale || 1;
-
-    this._map = new mbgl.Map(this._fileSource);
-    this._map.load(options.style);
+function GL(uri, callback) {
+    this._map = new mbgl.Map({
+        request: function(req, callback) {
+            request({
+                url: req.url,
+                encoding: null,
+                gzip: true
+            }, function (err, res, body) {
+                if (err) {
+                    callback(err);
+                } else if (res.statusCode == 200) {
+                    var response = {};
+    
+                    if (res.headers.modified) { response.modified = new Date(res.headers.modified); }
+                    if (res.headers.expires) { response.expires = new Date(res.headers.expires); }
+                    if (res.headers.etag) { response.etag = res.headers.etag; }
+                    
+                    response.data = body;
+                    
+                    callback(null, response);
+                } else {
+                    //Dont make rendering fail if a resource is missing
+                    return callback(null, {});
+                }
+            });
+        }
+    });
+    this._style = require(uri.path);
+    this._map.load(this._style);
+    this._scale = +uri.query.scale || 1;
 
     return callback(null, this);
 }
 
 GL.registerProtocols = function(tilelive) {
     tilelive.protocols['gl:'] = GL;
+    console.log("registering gl")
 };
 
 GL.prototype.getTile = function(z, x, y, callback) {
-
-    // Hack around tilelive API - allow params to be passed per request
-    // as attributes of the callback function.
-    var scale = callback.scale || this._scale;
-
     var bbox = sm.bbox(+x,+y,+z, false, '900913');
     var center = sm.inverse([bbox[0] + ((bbox[2] - bbox[0]) * 0.5), bbox[1] + ((bbox[3] - bbox[1]) * 0.5)]);
 
     var options = {
-        // pass center in lat, lng order
-        center: [center[1], center[0]],
+        center: center,
         width: 512,
         height: 512,
-        ratio: scale,
+        ratio: this._scale,
         zoom: z
     };
 
@@ -56,17 +63,24 @@ GL.prototype.getStatic = function(options, callback) {
     this._map.render(options, function(err, data) {
         if (err) return callback(err);
 
-        var png = new PNG({
-            width: data.width,
-            height: data.height
+        var image = sharp(data, {
+            raw: {
+                width: 512,
+                height: 512,
+                channels: 4
+            }
+        })
+        .png()
+        .toBuffer(function(err, data, info){
+            return callback(null, data, { 'Content-Type': 'image/png' });
         });
-
-        png.data = data.pixels;
-
-        var concatStream = concat(function(buffer) {
-            return callback(null, buffer, { 'Content-Type': 'image/png' });
-        });
-
-        png.pack().pipe(concatStream);
     });
+};
+
+GL.prototype.getInfo = function(callback) {
+    if(callback) {
+        return callback(null, {});
+    } else {
+        return {};
+    }
 };

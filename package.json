@@ -19,9 +19,10 @@
     }
   ],
   "dependencies": {
-    "concat-stream": "^1.5.0",
-    "mapbox-gl-native": "^1.1.1",
+    "mapbox-gl-native": "^3.4.1",
     "pngjs": "^0.4.0",
+    "request": "^2.81.0",
+    "sharp": "^0.17.3",
     "sphericalmercator": "^1.0.3"
   },
   "devDependencies": {
