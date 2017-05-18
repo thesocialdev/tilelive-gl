@@ -9,6 +9,14 @@ module.exports = GL;
 function GL(uri, callback) {
     this._style = require(uri.pathname);
     this._scale = +uri.query.scale || 1;
+    this._tilesize = +uri.query.baseTileSize || 256;
+    this._zoomOffset = uri.query.zoomOffset;
+    if(uri.query.zoomOffset === undefined) {
+        this._zoomOffset = -1;
+    } else {
+        this._zoomOffset = +uri.query.zoomOffset;
+    }
+
     this._imageOptions = {};
     var imageFormat = uri.query.format || "png";
     if(imageFormat.startsWith("png")) {
@@ -58,7 +66,7 @@ function GL(uri, callback) {
     };
 
     var opts = {
-        max: 2, // maximum size of the pool
+        max: +uri.query.mapPoolMaxSize || 2, // maximum size of the pool
         min: 0 // minimum size of the pool
     };
 
@@ -90,7 +98,8 @@ GL.prototype._getMap = function() {
                     return callback(null, {});
                 }
             });
-        }
+        },
+        ratio: this._scale
     });
     _map.load(this._style);
     return _map;
@@ -106,12 +115,10 @@ GL.prototype.getTile = function(z, x, y, callback) {
 
     var options = {
         center: center,
-        width: 512,
-        height: 512,
-        ratio: this._scale,
-        zoom: z
+        width: this._tilesize,
+        height: this._tilesize,
+        zoom: z + this._zoomOffset
     };
-
     this.getStatic(options, callback);
 };
 
@@ -122,13 +129,15 @@ GL.prototype.getStatic = function(options, callback) {
         map.render(options, function(err, data) {
             if (err) return callback(err);
             thisGL._pool.release(map);
+            var size = thisGL._tilesize * thisGL._scale;
             var image = sharp(data, {
                 raw: {
-                    width: 512,
-                    height: 512,
+                    width: size,
+                    height: size,
                     channels: 4
                 }
             });
+            
             if(thisGL._imageFormat == "png") {
                 image = image.png(thisGL._imageOptions);
             } else if(thisGL._imageFormat == "jpeg") {
