@@ -7,8 +7,36 @@ var genericPool = require('generic-pool');
 module.exports = GL;
 
 function GL(uri, callback) {
-    this._style = require(uri.path);
+    this._style = require(uri.pathname);
     this._scale = +uri.query.scale || 1;
+    this._imageOptions = {};
+    var imageFormat = uri.query.format || "png";
+    if(imageFormat.startsWith("png")) {
+        this._mimetype = "image/png";
+        this._imageFormat = "png";
+        //TODO: add support for png pallete options
+    } else if(imageFormat.startsWith("jpeg")) {
+        this._mimetype = "image/jpeg";
+        this._imageFormat = "jpeg";
+    } else if(imageFormat.startsWith("webp")) {
+        this._mimetype = "image/webp";
+        this._imageFormat = "webp";
+    } else {
+        throw "Invalid image format";
+    }
+
+    if(imageFormat.startsWith("jpeg") || imageFormat.startsWith("webp")) {
+        if(imageFormat.endsWith("70")) {
+            this._imageOptions['quality'] = 70;
+        } else if(imageFormat.endsWith("80")) {
+            this._imageOptions['quality'] = 80;
+        } else if(imageFormat.endsWith("90")) {
+            this._imageOptions['quality'] = 90;
+        } else if(imageFormat.endsWith("100")) {
+            this._imageOptions['quality'] = 100;
+        }
+    }
+
     var thisGL = this;
     const factory = {
         create: function(){
@@ -100,10 +128,16 @@ GL.prototype.getStatic = function(options, callback) {
                     height: 512,
                     channels: 4
                 }
-            })
-            .png()
-            .toBuffer(function(err, data, info){
-                return callback(null, data, { 'Content-Type': 'image/png' });
+            });
+            if(thisGL._imageFormat == "png") {
+                image = image.png(thisGL._imageOptions);
+            } else if(thisGL._imageFormat == "jpeg") {
+                image = image.jpeg(thisGL._imageOptions);
+            } else {
+                image = image.webp(thisGL._imageOptions);
+            }
+            image.toBuffer(function(err, data, info){
+                return callback(null, data, { 'Content-Type': thisGL._mimetype });
             });
         });
     });
