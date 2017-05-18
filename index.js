@@ -110,9 +110,19 @@ GL.prototype.getStatic = function(options, callback) {
 };
 
 GL.prototype.getInfo = function(callback) {
+    var info = {
+        minzoom: 0,
+        maxzoom: 22
+    };
+    if(this._style['name']) {
+        info['name'] = this._style['name'];
+    }
+    if(this._style['center']) {
+        info['center'] = [this._style['center'][0], this._style['center'][1], this._style['zoom'] || 10];
+    }
     if(callback) {
-        return callback(null, {});
+        return callback(null, info);
     } else {
-        return {};
+        return info;
     }
 };
