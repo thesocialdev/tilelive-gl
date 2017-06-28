@@ -1,4 +1,4 @@
-var sm = new (require('sphericalmercator'))();
+var sm = new (require('@mapbox/sphericalmercator'))();
 var mbgl = require('mapbox-gl-native');
 var sharp = require('sharp');
 var request = require('request');
