@@ -12,25 +12,19 @@
     "type": "git",
     "url": "git://github.com/mapbox/tilelive-gl.git"
   },
-  "licenses": [
-    {
-      "type": "BSD",
-      "url": "https://github.com/mapbox/tilelive-gl/blob/master/LICENSE.txt"
-    }
-  ],
+  "license": "BSD-2-Clause",
   "dependencies": {
     "generic-pool": "^3.1.7",
-    "mapbox-gl-native": "^3.4.1",
+    "@mapbox/mapbox-gl-native": "^3.5.4",
     "request": "^2.81.0",
     "sharp": "^0.17.3",
-    "sphericalmercator": "^1.0.3"
+    "@mapbox/sphericalmercator": "^1.0.3"
   },
   "devDependencies": {
     "mkdirp": "^0.5.1",
-    "request": "^2.58.0",
     "st": "^0.5.4",
     "tape": "^4.0.0",
-    "tilelive": "^5.7.1"
+    "@mapbox/tilelive": "^5.7.1"
   },
   "scripts": {
     "test": "tape test/*.test.js"
