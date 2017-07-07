@@ -1,8 +1,9 @@
-var sm = new (require('sphericalmercator'))();
-var mbgl = require('mapbox-gl-native');
+var sm = new (require('@mapbox/sphericalmercator'))();
+var mbgl = require('@mapbox/mapbox-gl-native');
 var sharp = require('sharp');
 var request = require('request');
 var genericPool = require('generic-pool');
+var CPUCount = require('os').cpus().length;
 
 module.exports = GL;
 
@@ -66,7 +67,7 @@ function GL(uri, callback) {
     };
 
     var opts = {
-        max: +uri.query.mapPoolMaxSize || 2, // maximum size of the pool
+        max: +uri.query.mapPoolMaxSize || CPUCount, // maximum size of the pool
         min: 0 // minimum size of the pool
     };
 
