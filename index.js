@@ -12,6 +12,7 @@ function GL(uri, callback) {
     this._scale = +uri.query.scale || 1;
     this._tilesize = +uri.query.baseTileSize || 256;
     this._zoomOffset = uri.query.zoomOffset;
+
     if(uri.query.zoomOffset === undefined) {
         this._zoomOffset = -1;
     } else {
@@ -46,34 +47,39 @@ function GL(uri, callback) {
         }
     }
 
-    var thisGL = this;
-    const factory = {
-        create: function(){
-            return new Promise(function(resolve, reject) {
-                try {
-                    var map = thisGL._getMap();
-                    resolve(map);
-                } catch(err) {
-                    reject(err);
-                }
-            });
-        },
-        destroy: function(client) {
-            return new Promise(function(resolve){
-                map.release();
-                resolve();
-            });
-        }
-    };
-
-    var opts = {
-        max: +uri.query.mapPoolMaxSize || CPUCount, // maximum size of the pool
-        min: 0 // minimum size of the pool
-    };
-
-    this._pool = genericPool.createPool(factory, opts);
+    var usepool = +uri.query.usepool || 0;
+    if(usepool) {
+        var thisGL = this;
+        const factory = {
+            create: function(){
+                return new Promise(function(resolve, reject) {
+                    try {
+                        var map = thisGL._getMap();
+                        resolve(map);
+                    } catch(err) {
+                        reject(err);
+                    }
+                });
+            },
+            destroy: function(client) {
+                return new Promise(function(resolve){
+                    map.release();
+                    resolve();
+                });
+            }
+        };
+    
+        var opts = {
+            max: +uri.query.mapPoolMaxSize || CPUCount, // maximum size of the pool
+            min: 0 // minimum size of the pool
+        };
+        this._pool = genericPool.createPool(factory, opts);
+    } else {
+        this._pool = null;
+    }
     return callback(null, this);
 };
+
 
 GL.prototype._getMap = function() {
     var _map = new mbgl.Map({
@@ -124,31 +130,41 @@ GL.prototype.getTile = function(z, x, y, callback) {
 };
 
 GL.prototype.getStatic = function(options, callback) {
-    const mapPromise = this._pool.acquire();
-    var thisGL = this;
-    mapPromise.then(function(map) {
-        map.render(options, function(err, data) {
-            if (err) return callback(err);
+    if(this._pool) {
+        const mapPromise = this._pool.acquire();
+        var thisGL = this;
+        mapPromise.then(function(map) {
+            thisGL._getStatic(map, options, callback);
+        });
+    } else {
+        this._getStatic(this._getMap(), options, callback);
+    }
+};
+
+GL.prototype._getStatic = function(map, options, callback) {
+    map.render(options, function(err, data) {
+        if (err) return callback(err);
+        if(this._pool) {
             thisGL._pool.release(map);
-            var size = thisGL._tilesize * thisGL._scale;
-            var image = sharp(data, {
-                raw: {
-                    width: size,
-                    height: size,
-                    channels: 4
-                }
-            });
-            
-            if(thisGL._imageFormat == "png") {
-                image = image.png(thisGL._imageOptions);
-            } else if(thisGL._imageFormat == "jpeg") {
-                image = image.jpeg(thisGL._imageOptions);
-            } else {
-                image = image.webp(thisGL._imageOptions);
+        }
+        var size = thisGL._tilesize * thisGL._scale;
+        var image = sharp(data, {
+            raw: {
+                width: size,
+                height: size,
+                channels: 4
             }
-            image.toBuffer(function(err, data, info){
-                return callback(null, data, { 'Content-Type': thisGL._mimetype });
-            });
+        });
+        
+        if(thisGL._imageFormat == "png") {
+            image = image.png(thisGL._imageOptions);
+        } else if(thisGL._imageFormat == "jpeg") {
+            image = image.jpeg(thisGL._imageOptions);
+        } else {
+            image = image.webp(thisGL._imageOptions);
+        }
+        image.toBuffer(function(err, data, info){
+            return callback(null, data, { 'Content-Type': thisGL._mimetype });
         });
     });
 };
