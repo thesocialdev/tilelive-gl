@@ -128,8 +128,8 @@ GL.prototype.getStatic = function(options, callback) {
     var thisGL = this;
     mapPromise.then(function(map) {
         map.render(options, function(err, data) {
-            if (err) return callback(err);
             thisGL._pool.release(map);
+            if (err) return callback(err);
             var size = thisGL._tilesize * thisGL._scale;
             var image = sharp(data, {
                 raw: {
