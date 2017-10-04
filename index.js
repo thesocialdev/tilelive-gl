@@ -143,11 +143,11 @@ GL.prototype.getStatic = function(options, callback) {
 
 GL.prototype._getStatic = function(map, options, callback) {
     map.render(options, function(err, data) {
-        if (err) return callback(err);
         if(this._pool) {
-            thisGL._pool.release(map);
+            this._pool.release(map);
         }
-        var size = thisGL._tilesize * thisGL._scale;
+        if (err) return callback(err);
+        var size = this._tilesize * this._scale;
         var image = sharp(data, {
             raw: {
                 width: size,
@@ -156,15 +156,15 @@ GL.prototype._getStatic = function(map, options, callback) {
             }
         });
         
-        if(thisGL._imageFormat == "png") {
-            image = image.png(thisGL._imageOptions);
-        } else if(thisGL._imageFormat == "jpeg") {
-            image = image.jpeg(thisGL._imageOptions);
+        if(this._imageFormat == "png") {
+            image = image.png(this._imageOptions);
+        } else if(this._imageFormat == "jpeg") {
+            image = image.jpeg(this._imageOptions);
         } else {
-            image = image.webp(thisGL._imageOptions);
+            image = image.webp(this._imageOptions);
         }
         image.toBuffer(function(err, data, info){
-            return callback(null, data, { 'Content-Type': thisGL._mimetype });
+            return callback(null, data, { 'Content-Type': this._mimetype });
         });
     });
 };
