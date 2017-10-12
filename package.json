@@ -18,7 +18,8 @@
     "@mapbox/mapbox-gl-native": "^3.5.6",
     "request": "^2.81.0",
     "sharp": "^0.17.3",
-    "@mapbox/sphericalmercator": "^1.0.3"
+    "@mapbox/sphericalmercator": "^1.0.3",
+    "debug": "^3.1.0"
   },
   "devDependencies": {
     "mkdirp": "^0.5.1",

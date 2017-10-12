@@ -4,10 +4,12 @@ var sharp = require('sharp');
 var request = require('request');
 var genericPool = require('generic-pool');
 var CPUCount = require('os').cpus().length;
+var debug = require('debug')('tilelive-gl');
 
 module.exports = GL;
 
 function GL(uri, callback) {
+    this._uri = uri.pathname;
     this._style = require(uri.pathname);
     this._scale = +uri.query.scale || 1;
     this._tilesize = +uri.query.baseTileSize || 256;
@@ -54,28 +56,48 @@ function GL(uri, callback) {
                     var map = thisGL._getMap();
                     resolve(map);
                 } catch(err) {
+                    console.error("Error creating map:", err);
                     reject(err);
                 }
             });
         },
-        destroy: function(client) {
+        destroy: function(resource) {
             return new Promise(function(resolve){
-                map.release();
+                debug("Destroying map for style: " + thisGL._uri + " used " + resource.useCount + " times.");
+                resource.release();
                 resolve();
             });
         }
     };
 
+    var maxMapUses = 50;
+    if(maxMapUses > 0) {
+        factory['validate'] = function(resource) {
+            debug("validate");
+            return new Promise(function(resolve) {
+                if(resource.useCount != undefined && resource.useCount > maxMapUses) {
+                    resolve(false);
+                } else {
+                    resolve(true);
+                }
+            });
+        };
+    }
+
     var opts = {
-        max: +uri.query.mapPoolMaxSize || CPUCount, // maximum size of the pool
-        min: 0 // minimum size of the pool
+        max: 2, // maximum size of the pool
+        min: 0, // minimum size of the pool
+        // testOnBorrow: maxMapUses > 0
+        evictionRunIntervalMillis: maxMapUses > 0 ? 60 * 1000 : 0
     };
 
+    debug("Creating pool with opts:", opts);
     this._pool = genericPool.createPool(factory, opts);
     return callback(null, this);
 };
 
 GL.prototype._getMap = function() {
+    debug("Creating map for style: " + this._uri);
     var _map = new mbgl.Map({
         request: function(req, callback) {
             request({
@@ -124,10 +146,21 @@ GL.prototype.getTile = function(z, x, y, callback) {
 };
 
 GL.prototype.getStatic = function(options, callback) {
+    var start = Date.now();
     const mapPromise = this._pool.acquire();
     var thisGL = this;
     mapPromise.then(function(map) {
+        debug("Got map in " + (Date.now() - start) + "ms");
+        if(map.useCount == undefined) {
+            map.useCount = 1;
+        } else {
+            map.useCount++;
+        }
+        debug("Map used " + map.useCount + " times.")
+        start = Date.now();
         map.render(options, function(err, data) {
+            debug("Rendering complete in " + (Date.now() - start) + "ms");
+            start = Date.now();
             thisGL._pool.release(map);
             if (err) return callback(err);
             var size = thisGL._tilesize * thisGL._scale;
@@ -147,6 +180,7 @@ GL.prototype.getStatic = function(options, callback) {
                 image = image.webp(thisGL._imageOptions);
             }
             image.toBuffer(function(err, data, info){
+                debug("Saving image complete in " + (Date.now() - start) + "ms");
                 return callback(null, data, { 'Content-Type': thisGL._mimetype });
             });
         });
@@ -154,6 +188,7 @@ GL.prototype.getStatic = function(options, callback) {
 };
 
 GL.prototype.getInfo = function(callback) {
+    debug("getInfo for style: " + this._uri);
     var info = {
         minzoom: 0,
         maxzoom: 22
