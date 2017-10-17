@@ -108,7 +108,6 @@ GL.prototype._getMap = function() {
     debug("Creating map for style: " + this._uri);
     var _map = new mbgl.Map({
         request: function(req, callback) {
-            console.log(req.url);
             var protocol = req.url.split(':')[0];
             if(protocol == 'file') {
                 var path = req.url.split('://')[1];
