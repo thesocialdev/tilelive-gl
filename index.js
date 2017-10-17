@@ -106,7 +106,7 @@ function GL(uri, callback) {
   }
 
   var opts = {
-    max: 5, // maximum size of the pool
+    max: 20, // maximum size of the pool
     min: 0, // minimum size of the pool
     testOnBorrow: maxMapUses > 0,
     idleTimeoutMillis: 15 * 60 * 1000,
