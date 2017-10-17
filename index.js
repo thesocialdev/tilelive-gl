@@ -56,6 +56,11 @@ function GL(uri, callback) {
         }
     }
 
+    if(imageFormat.startsWith("png")) {
+        this._imageOptions['adaptiveFiltering'] = false;
+        this._imageOptions['compressionLevel'] = 6;
+    }
+
     var thisGL = this;
     const factory = {
         create: function(){
@@ -78,11 +83,12 @@ function GL(uri, callback) {
         }
     };
 
-    var maxMapUses = 50;
+    var maxMapUses = 0;
     if(maxMapUses > 0) {
         factory['validate'] = function(resource) {
             debug("validate");
             return new Promise(function(resolve) {
+                console.log("validate: usecount:" + resource.useCount);
                 if(resource.useCount != undefined && resource.useCount > maxMapUses) {
                     resolve(false);
                 } else {
@@ -93,10 +99,11 @@ function GL(uri, callback) {
     }
 
     var opts = {
-        max: 2, // maximum size of the pool
+        max: 5, // maximum size of the pool
         min: 0, // minimum size of the pool
-        // testOnBorrow: maxMapUses > 0
-        evictionRunIntervalMillis: maxMapUses > 0 ? 60 * 1000 : 0
+        testOnBorrow: maxMapUses > 0,
+        idleTimeoutMillis: 15 * 60 * 1000,
+        evictionRunIntervalMillis: maxMapUses > 0 ? 5 * 60 * 1000 : 0
     };
 
     debug("Creating pool with opts:", opts);
