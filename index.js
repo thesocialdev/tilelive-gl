@@ -133,7 +133,13 @@ GL.prototype._getMap = function() {
           var response = {};
           response.data = data;
           callback(null, response);
-          debug("Request for " + req.url + " complete in " + (Date.now() - start) + "ms");
+          debug(
+            "Request for " +
+              req.url +
+              " complete in " +
+              (Date.now() - start) +
+              "ms"
+          );
         });
       } else {
         request(
@@ -144,10 +150,19 @@ GL.prototype._getMap = function() {
           },
           function(err, res, body) {
             var duration = Date.now() - start;
-            if(duration > 500) {
-              debug("Request for " + req.url + " complete in " + duration + "ms.  Headers:" + JSON.stringify(res.headers));
+            if (duration > 500) {
+              debug(
+                "Request for " +
+                  req.url +
+                  " complete in " +
+                  duration +
+                  "ms.  Headers:" +
+                  JSON.stringify(res.headers)
+              );
             } else {
-              debug("Request for " + req.url + " complete in " + duration + "ms");
+              debug(
+                "Request for " + req.url + " complete in " + duration + "ms"
+              );
             }
             if (err) {
               callback(err);
