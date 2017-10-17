@@ -143,7 +143,12 @@ GL.prototype._getMap = function() {
             gzip: true
           },
           function(err, res, body) {
-            debug("Request for " + req.url + " complete in " + (Date.now() - start) + "ms");
+            var duration = Date.now() - start;
+            if(duration > 500) {
+              debug("Request for " + req.url + " complete in " + duration + "ms.  Headers:" + JSON.stringify(res.headers));
+            } else {
+              debug("Request for " + req.url + " complete in " + duration + "ms");
+            }
             if (err) {
               callback(err);
             } else if (res.statusCode == 200) {
