@@ -1,10 +1,18 @@
-var sm = new (require('@mapbox/sphericalmercator'))();
-var mbgl = require('@mapbox/mapbox-gl-native');
-var sharp = require('sharp');
-var request = require('request');
-var genericPool = require('generic-pool');
 var CPUCount = require('os').cpus().length;
 var debug = require('debug')('tilelive-gl');
+var fs = require('fs');
+var genericPool = require('generic-pool');
+var mbgl = require('@mapbox/mapbox-gl-native');
+var request = require('request');
+var sharp = require('sharp');
+var sm = new (require('@mapbox/sphericalmercator'))();
+
+mbgl.on('message', function(e) {
+  if (e.severity == 'WARNING' || e.severity == 'ERROR') {
+    console.log('mbgl:', e);
+  }
+});
+
 
 module.exports = GL;
 
@@ -100,27 +108,41 @@ GL.prototype._getMap = function() {
     debug("Creating map for style: " + this._uri);
     var _map = new mbgl.Map({
         request: function(req, callback) {
-            request({
-                url: req.url,
-                encoding: null,
-                gzip: true
-            }, function (err, res, body) {
-                if (err) {
-                    callback(err);
-                } else if (res.statusCode == 200) {
+            console.log(req.url);
+            var protocol = req.url.split(':')[0];
+            if(protocol == 'file') {
+                var path = req.url.split('://')[1];
+                fs.readFile(path, function (err,data) {
+                    if (err) {
+                        return callback(err);
+                    }
                     var response = {};
-                    if (res.headers.modified) { response.modified = new Date(res.headers.modified); }
-                    if (res.headers.expires) { response.expires = new Date(res.headers.expires); }
-                    if (res.headers.etag) { response.etag = res.headers.etag; }
-                    
-                    response.data = body;
-                    
+                    response.data = data;       
                     callback(null, response);
-                } else {
-                    //Dont make rendering fail if a resource is missing
-                    return callback(null, {});
-                }
-            });
+                });
+            } else {
+                request({
+                    url: req.url,
+                    encoding: null,
+                    gzip: true
+                }, function (err, res, body) {
+                    if (err) {
+                        callback(err);
+                    } else if (res.statusCode == 200) {
+                        var response = {};
+                        if (res.headers.modified) { response.modified = new Date(res.headers.modified); }
+                        if (res.headers.expires) { response.expires = new Date(res.headers.expires); }
+                        if (res.headers.etag) { response.etag = res.headers.etag; }
+                        
+                        response.data = body;
+                        
+                        callback(null, response);
+                    } else {
+                        //Dont make rendering fail if a resource is missing
+                        return callback(null, {});
+                    }
+                });
+            }
         },
         ratio: this._scale
     });
