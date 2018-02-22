@@ -8,11 +8,12 @@ var sharp = require("sharp");
 var sm = new (require("@mapbox/sphericalmercator"))();
 
 mbgl.on("message", function(e) {
+  debug("mbgl: ", e);
   if (e.severity == "WARNING" || e.severity == "ERROR") {
     console.log("mbgl:", e);
   }
 });
-console.log("simd available: " + sharp.simd(true));
+debug("simd available: " + sharp.simd(true));
 
 module.exports = GL;
 
@@ -105,7 +106,7 @@ function GL(uri, callback) {
   }
 
   var opts = {
-    max: 5, // maximum size of the pool
+    max: 20, // maximum size of the pool
     min: 0, // minimum size of the pool
     testOnBorrow: maxMapUses > 0,
     idleTimeoutMillis: 15 * 60 * 1000,
@@ -121,6 +122,7 @@ GL.prototype._getMap = function() {
   debug("Creating map for style: " + this._uri);
   var _map = new mbgl.Map({
     request: function(req, callback) {
+      var start = Date.now();
       var protocol = req.url.split(":")[0];
       if (protocol == "file") {
         var path = req.url.split("://")[1];
@@ -131,6 +133,13 @@ GL.prototype._getMap = function() {
           var response = {};
           response.data = data;
           callback(null, response);
+          debug(
+            "Request for " +
+              req.url +
+              " complete in " +
+              (Date.now() - start) +
+              "ms"
+          );
         });
       } else {
         request(
@@ -140,6 +149,21 @@ GL.prototype._getMap = function() {
             gzip: true
           },
           function(err, res, body) {
+            var duration = Date.now() - start;
+            if (duration > 500) {
+              debug(
+                "Request for " +
+                  req.url +
+                  " complete in " +
+                  duration +
+                  "ms.  Headers:" +
+                  JSON.stringify(res.headers || null)
+              );
+            } else {
+              debug(
+                "Request for " + req.url + " complete in " + duration + "ms"
+              );
+            }
             if (err) {
               callback(err);
             } else if (res.statusCode == 200) {
