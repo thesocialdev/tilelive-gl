@@ -59,8 +59,11 @@ function GL(uri, callback) {
 
   if (imageFormat.startsWith("png")) {
     this._imageOptions["adaptiveFiltering"] = false;
-    this._imageOptions["compressionLevel"] = 6;
+    this._imageOptions["progressive"] = false;
+    this._imageOptions["compressionLevel"] = 9;
   }
+
+  debug("image format:" + imageFormat + "image options:" + JSON.stringify(this._imageOptions));
 
   var thisGL = this;
   const factory = {
