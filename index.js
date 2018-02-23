@@ -264,7 +264,8 @@ GL.prototype.getInfo = function(callback) {
   debug("getInfo for style: " + this._uri);
   var info = {
     minzoom: 0,
-    maxzoom: 22
+    maxzoom: 22,
+    format: this._imageFormat
   };
   if (this._style["name"]) {
     info["name"] = this._style["name"];

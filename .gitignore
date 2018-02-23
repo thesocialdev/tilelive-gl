@@ -1,3 +1,4 @@
 test/actual
 test/diff
 node_modules
+package-lock.json
