@@ -124,6 +124,8 @@ function GL(uri, callback) {
 GL.prototype._getMap = function() {
   debug("Creating map for style: " + this._uri);
   var _map = new mbgl.Map({
+    mode: "tile",
+    ratio: this._scale,
     request: function(req, callback) {
       var start = Date.now();
       var protocol = req.url.split(":")[0];
@@ -191,8 +193,7 @@ GL.prototype._getMap = function() {
           }
         );
       }
-    },
-    ratio: this._scale
+    }
   });
   _map.load(this._style);
   return _map;
