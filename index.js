@@ -156,14 +156,25 @@ GL.prototype._getMap = function() {
           function(err, res, body) {
             var duration = Date.now() - start;
             if (duration > 500) {
-              debug(
-                "Request for " +
-                  req.url +
-                  " complete in " +
-                  duration +
-                  "ms.  Headers:" +
-                  JSON.stringify(res.headers || null)
-              );
+              if(res === undefined) { // If request timed out response will be undefined
+                debug(
+                  "Request for " +
+                    req.url +
+                    " failed in " +
+                    duration +
+                    "ms."
+                );
+              } else {
+                // Headers are needed for debugging cases of slow responses from AWS s3
+                debug(
+                  "Request for " +
+                    req.url +
+                    " complete in " +
+                    duration +
+                    "ms.  Headers:" +
+                    JSON.stringify(res.headers || null)
+                );           
+              }
             } else {
               debug(
                 "Request for " + req.url + " complete in " + duration + "ms"
