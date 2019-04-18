@@ -161,8 +161,7 @@ GL.prototype._getMap = function() {
                   req.url +
                   " complete in " +
                   duration +
-                  "ms.  Headers:" +
-                  JSON.stringify(res.headers || null)
+                  "ms."
               );
             } else {
               debug(
