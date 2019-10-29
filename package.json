@@ -17,7 +17,7 @@
     "generic-pool": "^3.7.1",
     "@mapbox/mapbox-gl-native": "^4.1.0",
     "request": "^2.88.0",
-    "sharp": "^0.22.0",
+    "sharp": "^0.20.0",
     "@mapbox/sphericalmercator": "^1.1.0",
     "debug": "^4.1.1"
   },
